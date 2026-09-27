@@ -57,8 +57,8 @@ public class Rover {
      * @throws IllegalArgumentException if an unknown instruction is encountered
      */
     public void execute(String instructions) {
-        if (instructions == null) {
-            throw new IllegalArgumentException("Instructions cannot be null.");
+        if (instructions == null || instructions.isBlank()) {
+            throw new IllegalArgumentException("Instructions cannot be null or blank.");
         }
 
         for (char instruction : instructions.toCharArray()) {

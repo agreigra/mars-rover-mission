@@ -1,5 +1,7 @@
 package com.nasa.rover;
 
+import static java.lang.String.format;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -34,32 +36,32 @@ public class Main {
                 throw new IllegalArgumentException("Input file is empty.");
             }
 
-            String[] plateauValues = lines.get(0).split("\\s+");
-            if (plateauValues.length != 2) {
-                throw new IllegalArgumentException("First line must contain plateau upper-right coordinates.");
-            }
-
-            Plateau plateau = new Plateau(Integer.parseInt(plateauValues[0]), Integer.parseInt(plateauValues[1]));
+            Plateau plateau = parsePlateau(lines.get(0));
             MissionControl missionControl = new MissionControl(plateau);
 
-            if (lines.size() > 1) {
-                for (int i = 1; i < lines.size(); i += 2) {
-                    if (i + 1 >= lines.size()) {
-                        throw new IllegalArgumentException(
-                                "Each rover requires a position line and an instruction line.");
-                    }
-
-                    String[] roverPosition = lines.get(i).split("\\s+");
-                    if (roverPosition.length != 3) {
-                        throw new IllegalArgumentException("Rover position must be in format: x y orientation");
-                    }
-
-                    missionControl.addRover(
-                            Integer.parseInt(roverPosition[0]),
-                            Integer.parseInt(roverPosition[1]),
-                            roverPosition[2],
-                            lines.get(i + 1));
+            for (int i = 1; i < lines.size(); i += 2) {
+                if (i + 1 >= lines.size()) {
+                    throw new IllegalArgumentException(
+                            "Each rover requires a position line and an instruction line.");
                 }
+
+                String[] roverPosition = splitOnWhitespace(
+                        lines.get(i),
+                        "Rover position must be in format: x y orientation");
+                if (roverPosition.length != 3) {
+                    throw new IllegalArgumentException("Rover position must be in format: x y orientation");
+                }
+
+                int x = parseCoordinate(roverPosition[0], "Rover x coordinate is invalid.");
+                int y = parseCoordinate(roverPosition[1], "Rover y coordinate is invalid.");
+                String orientation = parseOrientation(roverPosition[2]);
+
+                String instructions = lines.get(i + 1);
+                if (instructions.isBlank()) {
+                    throw new IllegalArgumentException("Rover instructions cannot be empty.");
+                }
+
+                missionControl.addRover(x, y, orientation, instructions);
             }
 
             System.out.println(missionControl.execute());
@@ -69,6 +71,44 @@ public class Main {
         } catch (Exception e) {
             System.err.println("Invalid input: " + e.getMessage());
             System.exit(1);
+        }
+    }
+
+    private static Plateau parsePlateau(String line) {
+        String[] values = splitOnWhitespace(line, "First line must contain plateau upper-right coordinates.");
+        if (values.length != 2) {
+            throw new IllegalArgumentException("First line must contain plateau upper-right coordinates.");
+        }
+
+        int maxX = parseCoordinate(values[0], "Plateau x coordinate is invalid.");
+        int maxY = parseCoordinate(values[1], "Plateau y coordinate is invalid.");
+        return new Plateau(maxX, maxY);
+    }
+
+    private static String parseOrientation(String rawOrientation) {
+        String orientation = rawOrientation.trim();
+        try {
+            Direction.valueOf(orientation.toUpperCase());
+            return orientation.toUpperCase();
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(
+                    format("Rover orientation must be one of: N, E, S, W. Received: %s", rawOrientation),
+                    e);
+        }
+    }
+
+    private static String[] splitOnWhitespace(String line, String errorMessage) {
+        if (line == null || line.isBlank()) {
+            throw new IllegalArgumentException(errorMessage);
+        }
+        return line.split("\\s+");
+    }
+
+    private static int parseCoordinate(String value, String errorMessage) {
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(errorMessage, e);
         }
     }
 }

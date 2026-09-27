@@ -25,12 +25,15 @@ class RoverAppTest {
 
         missionControl.addRover(1, 2, "N", "L");
 
-        Field roversField = MissionControl.class.getDeclaredField("rovers");
-        roversField.setAccessible(true);
+        Field entriesField = MissionControl.class.getDeclaredField("entries");
+        entriesField.setAccessible(true);
         @SuppressWarnings("unchecked")
-        List<Rover> rovers = (List<Rover>) roversField.get(missionControl);
+        List<Object> entries = (List<Object>) entriesField.get(missionControl);
 
-        assertEquals(Direction.N, rovers.get(0).getDirection());
+        Object entry = entries.get(0);
+        Rover rover = (Rover) entry.getClass().getDeclaredMethod("rover").invoke(entry);
+
+        assertEquals(Direction.N, rover.getDirection());
         assertEquals("1 2 W", missionControl.execute());
     }
 
@@ -53,6 +56,24 @@ class RoverAppTest {
     }
 
     @Test
+    void negativePlateauDimensionsAreRejected() {
+        IllegalArgumentException thrown = assertThrows(
+                IllegalArgumentException.class,
+                () -> new Plateau(-1, 5));
+
+        assertEquals("Plateau dimensions must be non-negative.", thrown.getMessage());
+    }
+
+    @Test
+    void invalidOrientationIsRejected() {
+        IllegalArgumentException thrown = assertThrows(
+                IllegalArgumentException.class,
+                () -> new Rover(0, 0, "Q", new Plateau(5, 5)));
+
+        assertEquals("No enum constant com.nasa.rover.Direction.Q", thrown.getMessage());
+    }
+
+    @Test
     void invalidInstructionIsRejected() {
         Rover rover = new Rover(0, 0, "N", new Plateau(5, 5));
 
@@ -61,5 +82,25 @@ class RoverAppTest {
                 () -> rover.execute("X"));
 
         assertEquals("Unknown instruction: X", thrown.getMessage());
+    }
+
+    @Test
+    void blankInstructionsAreRejected() {
+        Rover rover = new Rover(0, 0, "N", new Plateau(5, 5));
+
+        IllegalArgumentException thrown = assertThrows(
+                IllegalArgumentException.class,
+                () -> rover.execute(""));
+
+        assertEquals("Instructions cannot be null or blank.", thrown.getMessage());
+    }
+
+    @Test
+    void roverStopsAtPlateauBoundary() {
+        Rover rover = new Rover(5, 5, "N", new Plateau(5, 5));
+
+        rover.execute("M");
+
+        assertEquals("5 5 N", rover.toString());
     }
 }

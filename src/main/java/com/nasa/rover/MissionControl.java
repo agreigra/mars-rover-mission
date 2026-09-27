@@ -13,8 +13,7 @@ import java.util.List;
  */
 public class MissionControl {
     private final Plateau plateau;
-    private final List<Rover> rovers = new ArrayList<>();
-    private final List<String> instructionsByRover = new ArrayList<>();
+    private final List<MissionEntry> entries = new ArrayList<>();
 
     /**
      * Creates a mission controller for a specific plateau.
@@ -35,8 +34,7 @@ public class MissionControl {
      */
     public void addRover(int x, int y, String orientation, String instructions) {
         Rover rover = new Rover(x, y, orientation, plateau);
-        rovers.add(rover);
-        instructionsByRover.add(instructions);
+        entries.add(new MissionEntry(rover, instructions));
     }
 
     /**
@@ -48,15 +46,18 @@ public class MissionControl {
     public String execute() {
         StringBuilder result = new StringBuilder();
 
-        for (int i = 0; i < rovers.size(); i++) {
-            rovers.get(i).execute(instructionsByRover.get(i));
+        for (MissionEntry entry : entries) {
+            entry.rover().execute(entry.instructions());
 
             if (result.length() > 0) {
                 result.append(System.lineSeparator());
             }
-            result.append(rovers.get(i));
+            result.append(entry.rover());
         }
 
         return result.toString();
+    }
+
+    private record MissionEntry(Rover rover, String instructions) {
     }
 }
